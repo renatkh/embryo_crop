@@ -6,16 +6,82 @@ Created on Apr 1, 2014
 fits embryos on a DIC image with an ellipse 
 '''
 
-import Image, numpy, cv2, glob,os
-import matplotlib.pyplot as plt
-from fitEllipse import *
+import cv2, glob,os
 import fitEllipse2
 from scipy.ndimage import label, morphology
-from driftCorrect import *
-from myFigure import myFigure
+import numpy as np
 
 debug=False
 minEmbArea=5000
+
+
+def create_ellipse(r, xc, alpha, n=100, angle_range=(0,2*np.pi)):
+    """ Create points on an ellipse with uniform angle step
+    
+    Parameters
+    ----------
+    r: tuple
+        (rx, ry): major an minor radii of the ellipse. Radii are supposed to
+        be given in descending order. No check will be done.
+    xc : tuple
+        x and y coordinates of the center of the ellipse
+    alpha : float
+        angle between the x axis and the major axis of the ellipse
+    n : int, optional
+        The number of points to create
+    angle_range : tuple (a0, a1)
+        angles between which points are created.
+        
+    Returns
+    -------
+        (n * 2) array of points 
+"""
+    R = np.array([
+        [np.cos(alpha), -np.sin(alpha)],
+        [np.sin(alpha), np.cos(alpha)]
+    ])
+    
+    a0,a1 = angle_range
+    angles = np.linspace(a0,a1,n)
+    X = np.vstack([ np.cos(angles) * r[0], np.sin(angles) * r[1]]).T
+    return np.dot(X,R.T) + xc
+
+def create_cassini_oval(r, xc, alpha, n=100, angle_range=(0,2*np.pi)):
+    """ Create points on an Cassini oval with uniform angle step
+    reference: http://virtualmathmuseum.org/Curves/cassinian_oval/Cassinian_Oval.pdf
+    
+    Parameters
+    ----------
+    r: tuple
+        (rx, ry): major an minor radii of the ellipse. Radii are supposed to
+        be given in descending order. No check will be done.
+    xc : tuple
+        x and y coordinates of the center of the ellipse
+    alpha : float
+        angle between the x axis and the major axis of the ellipse
+    n : int, optional
+        The number of points to create
+    angle_range : tuple (a0, a1)
+        angles between which points are created.
+        
+    Returns
+    -------
+        (n * 2) array of points 
+"""
+    R = np.array([
+        [np.cos(alpha), -np.sin(alpha)],
+        [np.sin(alpha), np.cos(alpha)]
+    ])
+    a0,a1 = angle_range
+    angles = np.linspace(a0,a1,n)
+    a = np.sqrt((r[0]**2-r[1]**2)/2)
+    b = np.sqrt((r[0]**2+r[1]**2)/2)
+    M = 2*a**2*np.cos(2*angles)+2*np.sqrt((-a**4+b**4)+a**4*np.cos(2*angles)**2)
+    X = np.vstack([ np.cos(angles) *np.sqrt(M/2), np.sin(angles) * np.sqrt(M/2)]).T
+#     x = np.cos(angles)*np.sqrt(M/2) + xc[0]
+#     y = np.sin(angles)*np.sqrt(M/2) + xc[1]
+#     points = np.array([[x[i],y[i]] for i in range(angles.size)])
+    return np.dot(X,R.T) + xc
 
 def find_nearest_above(my_array, target):
     diff = my_array - target
@@ -37,8 +103,8 @@ class ColorMap:
     ratios = []    
 
     def __init__(self, startcolor, endcolor, startmap, endmap):
-        self.startcolor = numpy.array(startcolor)
-        self.endcolor = numpy.array(endcolor)
+        self.startcolor = np.array(startcolor)
+        self.endcolor = np.array(endcolor)
         self.startmap = float(startmap)
         self.endmap = float(endmap)
         self.valuerange = float(endmap - startmap)
@@ -57,35 +123,35 @@ def getContourPart(contour, indexStart, indexEnd):
         while i<0: i+=len(contour)
         while i>=len(contour): i-=len(contour) #if i went out of bounds, loop back
         newCont.append(contour[i,0])
-    return numpy.array(newCont)
+    return np.array(newCont)
 
 def getEllipse(contour, start, end):
     #Note: horizontal ellipse
     ''' returns parameters of an ellipse fitted to contour between start and end'''
     X = getContourPart(contour, start, end)
     hull = cv2.convexHull(X)
-    hull = numpy.array([p[0] for p in hull])
+    hull = np.array([p[0] for p in hull])
     try: cPos, a, d, ang = fitEllipse2.fitellipse(hull,'linear')
     except RuntimeError: cPos, a, d, ang = (0,0), 0, 0, 0
     if a<d:
         a,d = d,a
-        ang+= numpy.pi/2
+        ang+= np.pi/2
     while ang>np.pi/2: ang-=np.pi
     while ang<-np.pi/2: ang+=np.pi
     return ((a,d),cPos, ang)
 
 def showIm(img, title='image'):
     #show image
-#     cv2.imshow(title, img)
-#     code = cv2.waitKey()
-#     cv2.destroyAllWindows()
-#     return code
-    fig = myFigure()
-    fig.imshow(img, colorbar=False)
-    fig.noAxis()
-    fig.noClip()
-    fig.title(title)
-    fig.show()
+    cv2.imshow(title, img)
+    code = cv2.waitKey()
+    cv2.destroyAllWindows()
+    return code
+#     fig = myFigure()
+#     fig.imshow(img, colorbar=False)
+#     fig.noAxis()
+#     fig.noClip()
+#     fig.title(title)
+#     fig.show()
     
 def saveIm(img):
     i=0
@@ -129,7 +195,7 @@ def showEllipse(contour, start, end, imArray):
     showIm(imArray)
 
 def contToArray(contour):
-    return numpy.array([point[0] for point in contour])
+    return np.array([point[0] for point in contour])
 
 def findPointIndex(contour, point):
     if cv2.pointPolygonTest(contour,point,False)==0:
@@ -208,7 +274,7 @@ def findDefect(cont,direction):
         d = cv2.pointPolygonTest(np.array([cont[hull[indHullPrev]],cont[hull[indHull]]]),tuple(cont[i]),True)
         dist.append(abs(d))
     if len(dist)==0 or max(dist)==0: return None, None, None, None
-    j = numpy.argmax(dist)
+    j = np.argmax(dist)
 
     ''' draw the first, last and deepest defect points '''
 #     imArray = mask.copy()
@@ -274,7 +340,7 @@ def removeFromMask(im,eParams):
         (a,d),cPos, ang = params #get ellipse parameters
         params = (a+1,d+1),cPos, ang #add extra pix To make sure that all of the embryo is cut out.
         ellipse = create_ellipse(*params) #creates ellipse points
-        ellipse = numpy.array([[[int(point[0]),int(point[1])]] for point in ellipse]) #converts points into numpy array
+        ellipse = np.array([[[int(point[0]),int(point[1])]] for point in ellipse]) #converts points into numpy array
         bbox = np.array(cv2.boundingRect(ellipse)) #determine ellipse bounding rectangle to reduce area for checking
         ''' fix box boundaries to be within image '''
         if bbox[0]<0:
@@ -295,80 +361,80 @@ def removeFromMask(im,eParams):
                     imCut[j,i] = 1
     
     #perform dilation
-    kernel = numpy.ones((2,2),np.uint8)
+    kernel = np.ones((2,2),np.uint8)
     imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_OPEN, kernel)
-    kernel = numpy.ones((9,9),np.uint8)
+    kernel = np.ones((9,9),np.uint8)
     imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_CLOSE, kernel)
     
     labeled,nr_objects = label(imTmp) #find objects left
     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)]) #get their area
-    mask = numpy.uint8(np.zeros_like(labeled))
+    mask = np.uint8(np.zeros_like(labeled))
     for ind in np.where(area>=minEmbArea)[0]: #zero those objects that are larger than minEmbArea
-        mask = mask + 255*numpy.uint8(labeled==ind+1)
+        mask = mask + 255*np.uint8(labeled==ind+1)
     return mask, imCut
 
 def getMask(image, DIC = False):
-#     kernel = numpy.ones((11,11),np.uint8)
-    kernel = numpy.ones((21,21),np.uint8)
+#     kernel = np.ones((11,11),np.uint8)
+    kernel = np.ones((21,21),np.uint8)
     if DIC:
         edge = cv2.Canny(image,60,255)
         if debug: showIm(edge)
-        edgeExt = numpy.zeros(numpy.array(edge.shape)+60)
+        edgeExt = np.zeros(np.array(edge.shape)+60)
         edgeExt[30:-30,30:-30] = edge
         imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
         imt = imt[30:-30, 30:-30]
         if debug: showIm(imt)
         labeled,nr_objects = label(imt)
         area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-        mask = numpy.uint8(np.zeros_like(labeled))
+        mask = np.uint8(np.zeros_like(labeled))
         for ind in np.where(area>=minEmbArea)[0]:
-            mask = mask + 255*numpy.uint8(labeled==ind+1)
+            mask = mask + 255*np.uint8(labeled==ind+1)
     else:
         image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
         labeled,nr_objects = label(image)
-        area = np.array([numpy.sum(labeled==k) for k in range(1,nr_objects+1)])
+        area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
         if len(area)==0 or max(area)<minEmbArea: return np.zeros_like(image)
-        mask = numpy.uint8(np.zeros_like(labeled))
+        mask = np.uint8(np.zeros_like(labeled))
         for ind in np.where(area>=minEmbArea)[0]:
-            mask = mask + 255*numpy.uint8(labeled==ind+1)
+            mask = mask + 255*np.uint8(labeled==ind+1)
     return mask
 
 def getMaskStak(images):
-#     kernel = numpy.ones((11,11),np.uint8)
-    kernel = numpy.ones((5,5),np.uint8)
+#     kernel = np.ones((11,11),np.uint8)
+    kernel = np.ones((5,5),np.uint8)
     if debug: showIm(images[0])
-    allEdges = numpy.zeros_like(images[0])
+    allEdges = np.zeros_like(images[0])
     for image in images[7:10]:
 #         edge = cv2.Canny(image,60,200) 67
-        edge = cv2.Canny(image,60,min(255,255*numpy.mean(images[0])/67))
-        allEdges[numpy.where(edge==255)]=255
+        edge = cv2.Canny(image,60,min(255,255*np.mean(images[0])/67))
+        allEdges[np.where(edge==255)]=255
     if debug: showIm(allEdges)
-    edgeExt = numpy.zeros(numpy.array(allEdges.shape)+60)
+    edgeExt = np.zeros(np.array(allEdges.shape)+60)
     edgeExt[30:-30,30:-30] = allEdges
     imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
     imt = imt[30:-30, 30:-30]
     if debug: showIm(imt)
     labeled,nr_objects = label(imt)
     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-    mask = numpy.uint8(np.zeros_like(labeled))
+    mask = np.uint8(np.zeros_like(labeled))
     for ind in np.where(area>=minEmbArea)[0]:
-        mask = mask + 255*numpy.uint8(labeled==ind+1)
+        mask = mask + 255*np.uint8(labeled==ind+1)
     return mask
 
 def getMaskFromEdge(im):
-    kernel = numpy.ones((7,7),np.uint8)
+    kernel = np.ones((7,7),np.uint8)
     image = cv2.medianBlur(im, 31)
     edge = cv2.Canny(image,0,20)
     imt = cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel)
-    imt = cv2.dilate(imt,numpy.ones((3,3),np.uint8))
+    imt = cv2.dilate(imt,np.ones((3,3),np.uint8))
     imt = np.uint8(morphology.binary_fill_holes(imt))
     labeled,nr_objects = label(imt)
     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-    mask = numpy.uint8(np.zeros_like(labeled))
+    mask = np.uint8(np.zeros_like(labeled))
     for ind in np.where(area>=minEmbArea)[0]:
-        mask = mask + 255*numpy.uint8(labeled==ind+1)
+        mask = mask + 255*np.uint8(labeled==ind+1)
 
-    imt = cv2.erode(imt,numpy.ones((3,3),np.uint8))
+    imt = cv2.erode(imt,np.ones((3,3),np.uint8))
 #     showIm(edge)
     return mask
 
@@ -388,7 +454,7 @@ def cropEllipse(im, eParams):
     imTmp = np.zeros_like(im)
 #     ellipse = create_ellipse(*eParams)
     ellipse = create_cassini_oval(*eParams)
-    ellipse = numpy.array([[[int(point[0]),int(point[1])]] for point in ellipse])
+    ellipse = np.array([[[int(point[0]),int(point[1])]] for point in ellipse])
     bbox = np.array(cv2.boundingRect(ellipse))
     ''' fix box boundaries to be within image '''
     if bbox[0]<0:
@@ -433,7 +499,7 @@ def cropRotate(tmp):
     mapx = mapx-x
     mapy = mapy-y
     im = cv2.remap(im32, mapx, mapy, interpolation=cv2.INTER_LINEAR).astype(im.dtype)
-    center=numpy.transpose(im.shape)/2
+    center=np.transpose(im.shape)/2
     matrix = cv2.getRotationMatrix2D(tuple(center), angle*180/np.pi, 1.0)
     rotatedIm = cv2.warpAffine(im, matrix, im.shape)
     width, height = (int(2*a),int(2* b))
@@ -468,8 +534,8 @@ def getAP(im):
     OUTPUT:
     flip: necessity to flip the image 180 degree (boolean)
     '''
-    return 1.*numpy.sum(im[:,:im.shape[1]/2])/numpy.sum( im[:,im.shape[1]/2:])
-#     if numpy.sum(im[:,:im.shape[1]/2]) < numpy.sum(im[:,im.shape[1]/2:]): return True
+    return 1.*np.sum(im[:,:im.shape[1]/2])/np.sum( im[:,im.shape[1]/2:])
+#     if np.sum(im[:,:im.shape[1]/2]) < np.sum(im[:,im.shape[1]/2:]): return True
 #     else: return False
 
 def getAP2(im1, im2):
@@ -491,24 +557,4 @@ def getAP2(im1, im2):
     return 1.*np.sum(imt[:,:imt.shape[1]/2])/np.sum(imt[:,imt.shape[1]/2:])
 
 if __name__ == '__main__':
-    folder = '/home/renat/Documents/work/imaging/development/test16/'
-#     folder = '/home/renat/Documents/work/imaging/RNAi/'
-    files = glob.glob(folder+'*.tif')
-    files.sort()
-    for fileName in  files:
-        print('file', fileName)
-        z = 1
-        slide = 0
-        im = Image.open(fileName)
-        im.seek(int(z/2)+slide*z)
-        imA = np.asarray(im)
-        showIm(imA)
-        
-#         mask = getMaskFromEdge(np.asarray(im))
-        im8b = np.uint8(255*(imA - np.min(imA))/np.max(imA))
-        mask = getMask(im8b, DIC=True)
-        eParams = findEmbsonIm(mask)
-        
-        for params in eParams:
-            cropRotate(imA, params)
-    
+    pass

@@ -16,18 +16,16 @@ corrDrift = True
 removeBG = True
 attCorrect = True
 apRotate = True
-nWells = 14#number of wells (14)
-pointVisits = 4# number of point visits (4)
+nWells = 1#number of wells (14)
+pointVisits = 1# number of point visits (4)
 
 
-import cv2, glob, Image, time, csv, shutil
+import cv2, glob, csv, shutil, os
 import numpy as np
 import Tkinter
 import tkMessageBox
-from driftCorrect import * 
-from findEmbryo import *
-from myFunc import *
-import multiprocessing as mp
+from findEmbryo import showIm, getMaskStak, findEmbsonIm, getMask, cropRotate, getAP, getAP2
+from myFunc import maxIntensProject, findDrift, correctDrift, clearFolder, a16a8
 from itertools import repeat
 from AttenuationCorrection import correctAttAll
 import numpy as np
@@ -179,7 +177,6 @@ def cropAllC(imgs, well):
     j=0
     allEmb, aspRatio = [], []
     flip = False
-    pool = mp.Pool(processes=10)
     for params in eParams:
         print('well {0}, cropping Embryo={1}'.format(well+1, j+1))
         if apRotate:
@@ -202,7 +199,7 @@ def cropAllC(imgs, well):
                     apR.append(getAP2(imtmp1, imtmp2))
             if np.mean(apR)<1: flip = True
             else: flip = False
-        imAll = pool.map(cropRotate, zip(im1+im2+im3, repeat(params), repeat(flip)))
+        imAll = [cropRotate(tmp) for tmp in zip(im1+im2+im3, repeat(params), repeat(flip))]
         length = len(im1)
         emb = (imAll[0:length],imAll[length:2*length],imAll[2*length:3*length])
         allEmb.append(emb)
@@ -211,8 +208,6 @@ def cropAllC(imgs, well):
         j+=1
         del emb, imAll
     del im1, im2, im3
-    pool.close()
-    pool.join()
     return allEmb, aspRatio
 
 def getAllEmb(folder):

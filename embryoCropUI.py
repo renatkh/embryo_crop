@@ -195,7 +195,7 @@ class Ui_MainWindow(object):
         
         self.featureSpins = [self.featureSize1_Spin, self.featureSize2_Spin, self.featureSize3_Spin, self.featureSize4_Spin, self.featureSize5_Spin]
         self.featureLabels = [self.featureSize1_Label, self.featureSize2_Label, self.featureSize3_Label, self.featureSize4_Label, self.featureSize5_Label]
-        self.defaultFeatureValue = 51
+        self.defaultFeatureValue = 201
         self.initialSetup()
 
         self.retranslateUi(MainWindow)

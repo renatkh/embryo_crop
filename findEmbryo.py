@@ -408,7 +408,6 @@ def getMask(image, DIC = False):
     return mask
 
 def getMaskStak(images):
-    print('RESCALE',RES_SCALE)
     kernel = np.ones((int(11*RES_SCALE),int(11*RES_SCALE)),np.uint8)
     if debug: showIm(images[0])
     images = np.array(myFunc.blurImList(images, int(1*RES_SCALE)))

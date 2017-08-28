@@ -25,6 +25,13 @@ except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
+class oddSpinBox(QtGui.QSpinBox):
+    def focusOutEvent(self, *args, **kwargs):
+        val = self.value()
+        if val % 2 == 0:
+            self.setValue(val+1)
+        return QtGui.QSpinBox.focusOutEvent(self, *args, **kwargs)
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
@@ -124,9 +131,9 @@ class Ui_MainWindow(object):
         self.featureSize1_Label.setEnabled(True)
         self.featureSize1_Label.setObjectName(_fromUtf8("featureSize1_Label"))
         self.horizontalLayout_1.addWidget(self.featureSize1_Label)
-        self.featureSize1_Spin = QtGui.QSpinBox(self.centralwidget)
+        self.featureSize1_Spin = oddSpinBox(self.centralwidget)
         self.featureSize1_Spin.setEnabled(True)
-        self.featureSize1_Spin.setMaximum(300)
+        self.featureSize1_Spin.setMaximum(500)
         self.featureSize1_Spin.setSingleStep(2)
         self.featureSize1_Spin.setObjectName(_fromUtf8("featureSize1_Spin"))
         self.horizontalLayout_1.addWidget(self.featureSize1_Spin)
@@ -137,9 +144,9 @@ class Ui_MainWindow(object):
         self.featureSize2_Label.setEnabled(True)
         self.featureSize2_Label.setObjectName(_fromUtf8("featureSize2_Label"))
         self.horizontalLayout_2.addWidget(self.featureSize2_Label)
-        self.featureSize2_Spin = QtGui.QSpinBox(self.centralwidget)
+        self.featureSize2_Spin = oddSpinBox(self.centralwidget)
         self.featureSize2_Spin.setEnabled(True)
-        self.featureSize2_Spin.setMaximum(300)
+        self.featureSize2_Spin.setMaximum(500)
         self.featureSize2_Spin.setSingleStep(2)
         self.featureSize2_Spin.setObjectName(_fromUtf8("featureSize2_Spin"))
         self.horizontalLayout_2.addWidget(self.featureSize2_Spin)
@@ -150,9 +157,9 @@ class Ui_MainWindow(object):
         self.featureSize3_Label.setEnabled(True)
         self.featureSize3_Label.setObjectName(_fromUtf8("featureSize3_Label"))
         self.horizontalLayout_3.addWidget(self.featureSize3_Label)
-        self.featureSize3_Spin = QtGui.QSpinBox(self.centralwidget)
+        self.featureSize3_Spin = oddSpinBox(self.centralwidget)
         self.featureSize3_Spin.setEnabled(True)
-        self.featureSize3_Spin.setMaximum(300)
+        self.featureSize3_Spin.setMaximum(500)
         self.featureSize3_Spin.setSingleStep(2)
         self.featureSize3_Spin.setObjectName(_fromUtf8("featureSize3_Spin"))
         self.horizontalLayout_3.addWidget(self.featureSize3_Spin)
@@ -163,9 +170,9 @@ class Ui_MainWindow(object):
         self.featureSize4_Label.setEnabled(True)
         self.featureSize4_Label.setObjectName(_fromUtf8("featureSize4_Label"))
         self.horizontalLayout_5.addWidget(self.featureSize4_Label)
-        self.featureSize4_Spin = QtGui.QSpinBox(self.centralwidget)
+        self.featureSize4_Spin = oddSpinBox(self.centralwidget)
         self.featureSize4_Spin.setEnabled(True)
-        self.featureSize4_Spin.setMaximum(300)
+        self.featureSize4_Spin.setMaximum(500)
         self.featureSize4_Spin.setSingleStep(2)
         self.featureSize4_Spin.setObjectName(_fromUtf8("featureSize4_Spin"))
         self.horizontalLayout_5.addWidget(self.featureSize4_Spin)
@@ -176,9 +183,9 @@ class Ui_MainWindow(object):
         self.featureSize5_Label.setEnabled(True)
         self.featureSize5_Label.setObjectName(_fromUtf8("featureSize5_Label"))
         self.horizontalLayout_8.addWidget(self.featureSize5_Label)
-        self.featureSize5_Spin = QtGui.QSpinBox(self.centralwidget)
+        self.featureSize5_Spin = oddSpinBox(self.centralwidget)
         self.featureSize5_Spin.setEnabled(True)
-        self.featureSize5_Spin.setMaximum(300)
+        self.featureSize5_Spin.setMaximum(500)
         self.featureSize5_Spin.setSingleStep(2)
         self.featureSize5_Spin.setObjectName(_fromUtf8("featureSize5_Spin"))
         self.horizontalLayout_8.addWidget(self.featureSize5_Spin)
@@ -195,7 +202,7 @@ class Ui_MainWindow(object):
         
         self.featureSpins = [self.featureSize1_Spin, self.featureSize2_Spin, self.featureSize3_Spin, self.featureSize4_Spin, self.featureSize5_Spin]
         self.featureLabels = [self.featureSize1_Label, self.featureSize2_Label, self.featureSize3_Label, self.featureSize4_Label, self.featureSize5_Label]
-        self.defaultFeatureValue = 201
+        self.defaultFeatureValue = 301
         self.initialSetup()
 
         self.retranslateUi(MainWindow)
@@ -266,8 +273,8 @@ class Ui_MainWindow(object):
         self.DIC_Spin.valueChanged.connect(self.DIC_changed)
         self.removeBG_Check.toggled.connect(self.removeBGClicked)
         self.customize_Check.toggled.connect(self.customBGClicked)
-        for i in range(len(self.featureSpins)):
-            self.featureSpins[i].valueChanged.connect(self.checkOdd)
+#         for i in range(len(self.featureSpins)):
+#             self.featureSpins[i].valueChanged.connect(self.checkOdd)
         
     def openFile(self):
         fileFilter = "TIF (*.tif)"

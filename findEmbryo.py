@@ -10,10 +10,20 @@ import cv2, glob,os
 import fitEllipse2
 from scipy.ndimage import label, morphology
 import numpy as np
+import myFunc
+from numpy.random import randint, seed
+import skimage
+from skimage.morphology import remove_small_holes
+global debug
 
 debug=False
-minEmbArea=5000
-
+minEmbArea=10000
+embDimA, embDimB = 150.,90.
+RES_SCALE = 1.
+SMALL_HOLE_SIZE=2000
+CANNY_TH1 = 30
+CANNY_TH2 = 100
+seed(2)
 
 def create_ellipse(r, xc, alpha, n=100, angle_range=(0,2*np.pi)):
     """ Create points on an ellipse with uniform angle step
@@ -187,7 +197,7 @@ def showEllipse(contour, start, end, imArray):
     #draw a circle at start point
     while start<0: start+=len(contour)
     while start>=len(contour): start-=len(contour)
-    cv2.circle(imArray,tuple(contour[start][0]),5,[50,0,0],-1)
+    cv2.circle(imArray,tuple(contour[start][0]),5,[150,0,0],-1)
     #draw a circle at end point
     while end>=len(contour): end-=len(contour)
     cv2.circle(imArray,tuple(contour[end][0]),5,[100,0,0],-1)
@@ -202,19 +212,19 @@ def findPointIndex(contour, point):
         for i in range(contour.size):
             if (contour[i]==point).all():return i
 
-def findDefects(contour):
-    distThreash = 5000
-    hull = cv2.convexHull(contour,returnPoints = False)
-    defects = cv2.convexityDefects(contour,hull)
-    result = []
-    for i in range(defects.shape[0]):
-        s,e,f,d = defects[i,0]
-        start = tuple(contour[s][0])
-        end = tuple(contour[e][0])
-        far = tuple(contour[f][0])
-        if d>distThreash:
-            result.append(far)
-    return result
+# def findDefects(contour):
+#     distThreash = 5000
+#     hull = cv2.convexHull(contour,returnPoints = False)
+#     defects = cv2.convexityDefects(contour,hull)
+#     result = []
+#     for i in range(defects.shape[0]):
+#         s,e,f,d = defects[i,0]
+#         start = tuple(contour[s][0])
+#         end = tuple(contour[e][0])
+#         far = tuple(contour[f][0])
+#         if d>distThreash:
+#             result.append(far)
+#     return result
 
 def findArc(contour, startIni):
     start, end = growArcEnd(contour, startIni)
@@ -223,8 +233,9 @@ def findArc(contour, startIni):
 
 def growArcEnd(contour, start, end=None, defect=False):
 #     print('growArcEnd, start, end', start, end)
-    distInside = 15 #minimal distance for convex hull deviation from the contour (15)
-    distSE = 10 #minimal distance between start and end of the deviation (50)
+#     if end == 1160: debug=True
+    distInside = 30*RES_SCALE #maximum allowed distance for convex hull deviation from the contour (15)
+    distSE = 30*RES_SCALE #maximum allowed distance between start and end of the deviation (50)
     stepSize = 5
     direction = 1
     if end is None: end = start+100
@@ -232,10 +243,12 @@ def growArcEnd(contour, start, end=None, defect=False):
     stepSize = direction*stepSize
     endPrev = end
     f=None
-    while abs(end-start)<400:
+    while abs(end-start)<1000*RES_SCALE:
         subCont = getContourPart(contour, start, end)
         s,e,f,d = findDefect(subCont, direction)
         if (s is not None and d>distInside and np.linalg.norm(subCont[e]-subCont[s])>distSE) or abs(end-start)>=len(contour):
+            if debug:
+                print('growArcEnd', d, np.linalg.norm(subCont[e]-subCont[s]))
             break
         else:
             endPrev = end
@@ -274,21 +287,7 @@ def findDefect(cont,direction):
         d = cv2.pointPolygonTest(np.array([cont[hull[indHullPrev]],cont[hull[indHull]]]),tuple(cont[i]),True)
         dist.append(abs(d))
     if len(dist)==0 or max(dist)==0: return None, None, None, None
-    j = np.argmax(dist)
-
-    ''' draw the first, last and deepest defect points '''
-#     imArray = mask.copy()
-#     imArray = np.zeros_like(mask.copy())
-#     cv2.drawContours(imArray,np.array([cont]),-1, (255,0,0))
-#     cv2.drawContours(imArray,np.array([cv2.convexHull(cont,returnPoints = True)]),-1, (155,0,0))
-#     cv2.circle(imArray,tuple(cont[hull[indHullPrev]][0]),3,[200,0,0],-1)
-#     cv2.circle(imArray,tuple(cont[hull[indHull]][0]),3,[100,0,0],-1)
-#     cv2.drawContours(imArray,np.array([[cont[i]] for i in range(hull[indHullPrev],hull[indHullPrev])]),-1, (100,0,0))
-#     cv2.circle(imArray,tuple(cont[hull[indHullPrev]+j][0]),3,[255,0,0],-1)
-#     cv2.imshow('img', imArray)
-#     cv2.waitKey()
-#     cv2.destroyAllWindows()
-    
+    j = np.argmax(dist)  
     return hull[indHullPrev], hull[indHull], hull[indHullPrev]+j, max(dist)
 
 def getStart(cont, shape, side = 0):
@@ -305,26 +304,30 @@ def getStart(cont, shape, side = 0):
         return bott
     elif side==4 or (contX[left]>delta and side==0):
         return left
-    else: return 0
+    else: return randint(delta, len(contX)-delta)
     
 def findEmbryo(im,side=0):
-    embDimA, embDimB = 115.,65.
     imTmp = im.copy()
     contours, hierarchy = cv2.findContours(imTmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if side==0:
-        quality = []
-        for side in range(1,5): #[top, right, bottom, left]
+        quality, starts = [], []
+        for side in range(1,20): #[top, right, bottom, left, random....]
             start = getStart(contours[0], imTmp.shape, side)
+            starts.append(start)
             start, end = findArc(contours[0],start)
             eParams = getEllipse(contours[0], start,end)
             a,b = eParams[0]
-            if a>70 and b>40: quality.append(abs(embDimA-a)/embDimA+abs(embDimB-b)/embDimB)
+#             if 1.4*embDimA*RES_SCALE>a>embDimA*RES_SCALE*0.7 and 1.4*embDimB*RES_SCALE>b>0.7*embDimB*RES_SCALE:
+            if a>embDimA*RES_SCALE*0.7 and b>0.7*embDimB*RES_SCALE:
+                quality.append(abs(embDimA-a)/embDimA+abs(embDimB-b)/embDimB)
             else: quality.append(100)
-            if debug: print('findEmbryo', side, a, b, quality[-1])
+            if debug: print('findEmbryo', side, a, b, quality[-1],starts[-1])
         side = np.argmin(quality)+1
         if debug: print('findEmbryo, side=',side)
-    
-    start = getStart(contours[0], imTmp.shape, side)
+     
+#     start = getStart(contours[0], imTmp.shape, side)
+    if len(starts)>0: start = starts[side-1]
+    else: start = getStart(contours[0], imTmp.shape, side)
     start, end = findArc(contours[0],start)
     eParams = getEllipse(contours[0], start,end)
     if debug: showEllipse(contours[0], start,end, im)
@@ -349,10 +352,10 @@ def removeFromMask(im,eParams):
         if bbox[1]<0:
             bbox[3]+=bbox[1]
             bbox[1]=0
-        if bbox[0]+bbox[2]>=im.shape[0]:
-            bbox[2] = im.shape[0]-bbox[0]-1
-        if bbox[1]+bbox[3]>=im.shape[1]:
-            bbox[3] = im.shape[1]-bbox[1]-1
+        if bbox[0]+bbox[2]>=im.shape[1]:
+            bbox[2] = im.shape[1]-bbox[0]-1
+        if bbox[1]+bbox[3]>=im.shape[0]:
+            bbox[3] = im.shape[0]-bbox[1]-1
             
         for i in range(bbox[0],bbox[0]+bbox[2]): #make all points on imTmp inside ellipse to be 0 and on imCut 1
             for j in range(bbox[1],min(bbox[1]+bbox[3],im.shape[0])):
@@ -360,83 +363,108 @@ def removeFromMask(im,eParams):
                     imTmp[j,i]=0
                     imCut[j,i] = 1
     
-    #perform dilation
-    kernel = np.ones((2,2),np.uint8)
-    imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_OPEN, kernel)
-    kernel = np.ones((9,9),np.uint8)
-    imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_CLOSE, kernel)
+#     #perform dilation
+#     kernel = np.ones((2,2),np.uint8)
+#     imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_OPEN, kernel)
+#     kernel = np.ones((9,9),np.uint8)
+#     imTmp = cv2.morphologyEx(imTmp, cv2.MORPH_CLOSE, kernel)
     
     labeled,nr_objects = label(imTmp) #find objects left
     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)]) #get their area
     mask = np.uint8(np.zeros_like(labeled))
-    for ind in np.where(area>=minEmbArea)[0]: #zero those objects that are larger than minEmbArea
+    for ind in np.where(area>=minEmbArea*RES_SCALE**2)[0]: #zero those objects that are larger than minEmbArea
         mask = mask + 255*np.uint8(labeled==ind+1)
     return mask, imCut
 
+def getEdges(im):
+    return cv2.Canny(im,CANNY_TH1/RES_SCALE, CANNY_TH2)
+
 def getMask(image, DIC = False):
-#     kernel = np.ones((11,11),np.uint8)
-    kernel = np.ones((21,21),np.uint8)
+    kernel = np.ones((int(11*RES_SCALE),int(11*RES_SCALE)),np.uint8)
     if DIC:
-        edge = cv2.Canny(image,60,255)
-        if debug: showIm(edge)
-        edgeExt = np.zeros(np.array(edge.shape)+60)
-        edgeExt[30:-30,30:-30] = edge
-        imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
-        imt = imt[30:-30, 30:-30]
-        if debug: showIm(imt)
-        labeled,nr_objects = label(imt)
-        area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-        mask = np.uint8(np.zeros_like(labeled))
-        for ind in np.where(area>=minEmbArea)[0]:
-            mask = mask + 255*np.uint8(labeled==ind+1)
-    else:
-        image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-        labeled,nr_objects = label(image)
-        area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-        if len(area)==0 or max(area)<minEmbArea: return np.zeros_like(image)
-        mask = np.uint8(np.zeros_like(labeled))
-        for ind in np.where(area>=minEmbArea)[0]:
-            mask = mask + 255*np.uint8(labeled==ind+1)
+        image = getEdges(image)
+        image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+#         edge = cv2.Canny(image,60,255)
+#         if debug: showIm(edge)
+#         edgeExt = np.zeros(np.array(edge.shape)+int(60*resScale))
+#         edgeExt[int(30*resScale):-int(30*resScale),int(30*resScale):-int(30*resScale)] = edge
+#         imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
+#         imt = imt[int(30*resScale):-int(30*resScale),int(30*resScale):-int(30*resScale)]
+#         if debug: showIm(imt)
+#         labeled,nr_objects = label(imt)
+#         area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
+#         mask = np.uint8(np.zeros_like(labeled))
+#         for ind in np.where(area>=minEmbArea*resScale)[0]:
+#             mask = mask + 255*np.uint8(labeled==ind+1)
+#     else:
+    labeled,nr_objects = label(image)
+    area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
+    if len(area)==0 or max(area)<minEmbArea*RES_SCALE**2: return np.zeros_like(image)
+    mask = np.uint8(np.zeros_like(labeled))
+    for ind in np.where(area>=minEmbArea*RES_SCALE**2)[0]:
+        mask = mask + 255*np.uint8(labeled==ind+1)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    if debug: showIm(mask, 'mask')
     return mask
 
 def getMaskStak(images):
-#     kernel = np.ones((11,11),np.uint8)
-    kernel = np.ones((5,5),np.uint8)
+    print('RESCALE',RES_SCALE)
+    kernel = np.ones((int(11*RES_SCALE),int(11*RES_SCALE)),np.uint8)
     if debug: showIm(images[0])
+    images = np.array(myFunc.blurImList(images, int(1*RES_SCALE)))
+    if debug: showIm(images[0], 'after blur')
     allEdges = np.zeros_like(images[0])
-    for image in images[7:10]:
-#         edge = cv2.Canny(image,60,200) 67
-        edge = cv2.Canny(image,60,min(255,255*np.mean(images[0])/67))
+    z = images.shape[0]
+    if z>3: useIms = images[z/2-1:z/2+1]
+    else: useIms = images 
+    for image in useIms:
+#         edge = cv2.Canny(image,60,min(255,255*np.mean(images[0])/67))
+        edge = getEdges(image)
         allEdges[np.where(edge==255)]=255
-    if debug: showIm(allEdges)
-    edgeExt = np.zeros(np.array(allEdges.shape)+60)
-    edgeExt[30:-30,30:-30] = allEdges
-    imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
-    imt = imt[30:-30, 30:-30]
-    if debug: showIm(imt)
-    labeled,nr_objects = label(imt)
-    area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-    mask = np.uint8(np.zeros_like(labeled))
-    for ind in np.where(area>=minEmbArea)[0]:
-        mask = mask + 255*np.uint8(labeled==ind+1)
+    if debug: showIm(allEdges, 'edges')
+    allEdges = cv2.morphologyEx(allEdges, cv2.MORPH_CLOSE, kernel)
+    mask = getMask(allEdges, DIC=False)
+    mask = remove_small_holes(mask>0, SMALL_HOLE_SIZE*RES_SCALE).astype(np.uint8)*255
+    if debug: showIm(mask, 'mask w/ fill')
+#     edgeExt = np.zeros(np.array(allEdges.shape)+60)
+#     edgeExt[30:-30,30:-30] = allEdges
+#     imt = cv2.morphologyEx(edgeExt, cv2.MORPH_CLOSE, kernel)
+#     imt = imt[30:-30, 30:-30]
+#     if debug: showIm(imt, 'after close')
+#     labeled,nr_objects = label(imt)
+#     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
+#     mask = np.uint8(np.zeros_like(labeled))
+#     for ind in np.where(area>=minEmbArea)[0]:
+#         mask = mask + 255*np.uint8(labeled==ind+1)
+#     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((11,11),np.uint8))
     return mask
 
-def getMaskFromEdge(im):
-    kernel = np.ones((7,7),np.uint8)
-    image = cv2.medianBlur(im, 31)
-    edge = cv2.Canny(image,0,20)
-    imt = cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel)
-    imt = cv2.dilate(imt,np.ones((3,3),np.uint8))
-    imt = np.uint8(morphology.binary_fill_holes(imt))
-    labeled,nr_objects = label(imt)
-    area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
-    mask = np.uint8(np.zeros_like(labeled))
-    for ind in np.where(area>=minEmbArea)[0]:
-        mask = mask + 255*np.uint8(labeled==ind+1)
+# def fillSmallHoles(mask):
+#     filled = morphology.binary_fill_holes(mask).astype(np.uint8)*255
+#     holes = filled - mask
+#     holesLabeled,nr_objects = label(holes)
+#     labels, areas = np.unique(holesLabeled, return_counts=True)
+#     largeHoles = labels[areas>SMALL_HOLE_SIZE]
+#     holes[np.where(holesLabeled in largeHoles)]=0
+#     if debug: showIm(mask+holes, 'mask w/ fill')
+#     return mask+holes
 
-    imt = cv2.erode(imt,np.ones((3,3),np.uint8))
-#     showIm(edge)
-    return mask
+# def getMaskFromEdge(im):
+#     kernel = np.ones((7,7),np.uint8)
+#     image = cv2.medianBlur(im, 31)
+#     edge = cv2.Canny(image,0,20)
+#     imt = cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel)
+#     imt = cv2.dilate(imt,np.ones((3,3),np.uint8))
+#     imt = np.uint8(morphology.binary_fill_holes(imt))
+#     labeled,nr_objects = label(imt)
+#     area = np.array([np.sum(labeled==k) for k in range(1,nr_objects+1)])
+#     mask = np.uint8(np.zeros_like(labeled))
+#     for ind in np.where(area>=minEmbArea)[0]:
+#         mask = mask + 255*np.uint8(labeled==ind+1)
+# 
+#     imt = cv2.erode(imt,np.ones((3,3),np.uint8))
+# #     showIm(edge)
+#     return mask
 
 def cropEllipse(im, eParams):
     ''' crops ellipse out of the image, the outside of the ellipse is black.
@@ -463,10 +491,10 @@ def cropEllipse(im, eParams):
     if bbox[1]<0:
         bbox[3]+=bbox[1]
         bbox[1]=0
-    if bbox[0]+bbox[2]>=im.shape[0]:
-        bbox[2] = im.shape[0]-bbox[0]-1
-    if bbox[1]+bbox[3]>=im.shape[1]:
-        bbox[3] = im.shape[1]-bbox[1]-1
+    if bbox[0]+bbox[2]>=im.shape[1]:
+        bbox[2] = im.shape[1]-bbox[0]-1
+    if bbox[1]+bbox[3]>=im.shape[0]:
+        bbox[3] = im.shape[0]-bbox[1]-1
 
     imTmp[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]] = im[bbox[1]:bbox[1]+bbox[3],bbox[0]:bbox[0]+bbox[2]]
     for i in range(bbox[0],bbox[0]+bbox[2]):
@@ -499,9 +527,9 @@ def cropRotate(tmp):
     mapx = mapx-x
     mapy = mapy-y
     im = cv2.remap(im32, mapx, mapy, interpolation=cv2.INTER_LINEAR).astype(im.dtype)
-    center=np.transpose(im.shape)/2
+    center=np.array(im.shape)[::-1]/2
     matrix = cv2.getRotationMatrix2D(tuple(center), angle*180/np.pi, 1.0)
-    rotatedIm = cv2.warpAffine(im, matrix, im.shape)
+    rotatedIm = cv2.warpAffine(im, matrix, (im.shape[1],im.shape[0]))
     width, height = (int(2*a),int(2* b))
     top, bot = max(0,center[1]-height/2), min(rotatedIm.shape[0],center[1]+height/2)
     left, right = max(0,center[0]-width/2), min(rotatedIm.shape[1],center[0]+width/2)

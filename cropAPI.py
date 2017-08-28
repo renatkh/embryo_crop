@@ -18,7 +18,7 @@ def cropEmbs(ims, dicCh, corrDrift, corrAtt, attVal, removeBkgd, featureList, re
     findEmbryo.RES_SCALE=0.21/resolution
     z, ch = ims.shape[1:3]
     if corrDrift: ims = correctDrift4AllC(ims, dicCh)
-    allEmbsIms, rs = cropAllC(ims,1,dicCh,corrDrift, corrAtt, attVal, removeBkgd, featureList, EmbdScreen)
+    allEmbsIms, rs = cropAllC(ims,0,dicCh,corrDrift, corrAtt, attVal, removeBkgd, featureList, EmbdScreen)
     if corrAtt:
         result = []
         for embImgs in allEmbsIms:

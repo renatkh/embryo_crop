@@ -16,7 +16,7 @@ import skimage
 from skimage.morphology import remove_small_holes
 global debug
 
-debug=False
+debug=True
 minEmbArea=10000
 embDimA, embDimB = 150.,90.
 RES_SCALE = 1.
@@ -308,7 +308,7 @@ def getStart(cont, shape, side = 0):
     
 def findEmbryo(im,side=0):
     imTmp = im.copy()
-    contours, hierarchy = cv2.findContours(imTmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours = cv2.findContours(imTmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]
     if side==0:
         quality, starts = [], []
         for side in range(1,20): #[top, right, bottom, left, random....]

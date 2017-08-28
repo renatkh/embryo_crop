@@ -230,32 +230,32 @@ class Ui_MainWindow(object):
         self.correctAttClicked(False)
         self.run_Button.setEnabled(False)
         
-        self.z_Spin.setValue(15)
-        self.time_Spin.setValue(3)
-        self.channel_Spin.setValue(3)
-        self.DIC_Spin.setValue(3)
-        self.fileName_Line.setText('/home/renat/Documents/work/development/test/Well005.tif')
-        
-#         self.z_Spin.setValue(1)
-#         self.time_Spin.setValue(17)
-#         self.channel_Spin.setValue(3)
-#         self.DIC_Spin.setValue(1)
-#         self.fileName_Line.setText('/home/renat/Documents/work/development/test/TESTME_BGLI141_1B_t2.tif')
-        
-#         self.z_Spin.setValue(5)
-#         self.time_Spin.setValue(7)
+#         self.z_Spin.setValue(15)
+#         self.time_Spin.setValue(3)
 #         self.channel_Spin.setValue(3)
 #         self.DIC_Spin.setValue(3)
-#         self.fileName_Line.setText('/home/renat/Documents/work/development/test/OD3465-0002.tif_Files/OD3465-0002_z0t0c0.tif')
-        self.run_Button.setEnabled(True)
-
-#         self.z_Spin.setValue(5)
-#         self.time_Spin.setValue(7)
-#         self.channel_Spin.setValue(3)
-#         self.DIC_Spin.setValue(3)
-#         self.fileName_Line.setText('/home/renat/Documents/work/development/test/OD3465-0003_2x2.tif_Files/OD3465-0003_2x2_z0t0c0.tif')
-#         self.resolution_Spin.setValue(0.42)
-#         self.run_Button.setEnabled(True)0
+#         self.fileName_Line.setText('/home/renat/Documents/work/development/test/Well005.tif')
+        
+# #         self.z_Spin.setValue(1)
+# #         self.time_Spin.setValue(17)
+# #         self.channel_Spin.setValue(3)
+# #         self.DIC_Spin.setValue(1)
+# #         self.fileName_Line.setText('/home/renat/Documents/work/development/test/TESTME_BGLI141_1B_t2.tif')
+#         
+# #         self.z_Spin.setValue(5)
+# #         self.time_Spin.setValue(7)
+# #         self.channel_Spin.setValue(3)
+# #         self.DIC_Spin.setValue(3)
+# #         self.fileName_Line.setText('/home/renat/Documents/work/development/test/OD3465-0002.tif_Files/OD3465-0002_z0t0c0.tif')
+#         self.run_Button.setEnabled(True)
+# 
+# #         self.z_Spin.setValue(5)
+# #         self.time_Spin.setValue(7)
+# #         self.channel_Spin.setValue(3)
+# #         self.DIC_Spin.setValue(3)
+# #         self.fileName_Line.setText('/home/renat/Documents/work/development/test/OD3465-0003_2x2.tif_Files/OD3465-0003_2x2_z0t0c0.tif')
+# #         self.resolution_Spin.setValue(0.42)
+# #         self.run_Button.setEnabled(True)0
     
     def connectUI(self):
         self.openFile_Button.clicked.connect(self.openFile)

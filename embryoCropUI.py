@@ -342,9 +342,9 @@ class Ui_MainWindow(object):
         try:
             allEmbs = cropAPI.cropEmbs(imgs, self.DIC_Spin.value()-1, self.correctDrift_Check.isChecked(),\
                          self.correctAtt_Check.isChecked(),self.correctAtt_Spin.value(), self.removeBG_Check.isChecked(), featureList, self.resolution_Spin.value())
+            self.save(allEmbs)
         except Exception as inst:
             self.statusBar.showMessage('Error:'+str(inst))
-        self.save(allEmbs)
         
     def openImage(self):
         path, nZ, nT, nCh, order = str(self.fileName_Line.text()), self.z_Spin.value(), self.time_Spin.value(),\
@@ -371,9 +371,9 @@ class Ui_MainWindow(object):
         path = '/'.join(str(self.fileName_Line.text()).split('/')[:-1])+'/'
         if not os.path.exists(path+'crop/'): myFunc.mkdir_p(path+'crop/')
         for i in range(len(allEmbs)):
-            print('saving Embryo {}'.format(i+1))
+            self.statusBar.showMessage('saving Embryo {}'.format(i+1))
             myFunc.saveImagesMulti(allEmbs[i].astype(np.uint16), path+'crop/Emb{0:02}.tif'.format(i))
-        print('embryos saved')
+        self.statusBar.showMessage('embryos saved')
 
 if __name__ == "__main__":
     import sys

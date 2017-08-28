@@ -121,7 +121,7 @@ def findDrift(imArray):
     im1 = np.float32(cv2.GaussianBlur(a16a8(imArray[0]), (Gsize,Gsize), 0))
     for i in range(1,len(imArray)):
         im2 = np.float32(cv2.GaussianBlur(a16a8(imArray[i]), (Gsize,Gsize), 0))
-        xt, yt= cv2.phaseCorrelate(im1,im2)
+        xt, yt= cv2.phaseCorrelate(im1,im2)[0]
         if np.sqrt(xt**2+yt**2)>50: xt, yt =0., 0.
         x-=xt
         y-=yt

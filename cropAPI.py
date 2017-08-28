@@ -38,7 +38,6 @@ def cropAllC(imgs, tCrop, dicCh, corrDrift, corrAtt, attVal, removeBkgd, feature
     list of images for each embryo
     '''
     z = imgs.shape[1]
-    if corrDrift: imgs = correctDrift4AllC(imgs)
     if removeBkgd:
         imtmp=np.zeros_like(imgs)
         for ch in range(imgs.shape[2]):

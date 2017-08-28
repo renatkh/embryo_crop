@@ -189,6 +189,9 @@ class Ui_MainWindow(object):
         self.gridLayout.addLayout(self.mainGridLayout, 0, 0, 1, 1)
         self.resolution_Label.raise_()
         MainWindow.setCentralWidget(self.centralwidget)
+        self.statusBar = QtGui.QStatusBar(MainWindow)
+        self.statusBar.setObjectName(_fromUtf8("statusBar"))
+        MainWindow.setStatusBar(self.statusBar)
         
         self.featureSpins = [self.featureSize1_Spin, self.featureSize2_Spin, self.featureSize3_Spin, self.featureSize4_Spin, self.featureSize5_Spin]
         self.featureLabels = [self.featureSize1_Label, self.featureSize2_Label, self.featureSize3_Label, self.featureSize4_Label, self.featureSize5_Label]
@@ -255,16 +258,16 @@ class Ui_MainWindow(object):
 #         self.run_Button.setEnabled(True)0
     
     def connectUI(self):
-        QtCore.QObject.connect(self.openFile_Button, QtCore.SIGNAL("clicked()"), self.openFile)
-        QtCore.QObject.connect(self.run_Button, QtCore.SIGNAL("clicked()"), self.run)
-        QtCore.QObject.connect(self.correctAtt_Check, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.correctAttClicked)
+        self.openFile_Button.clicked.connect(self.openFile)
+        self.run_Button.clicked.connect(self.run)
+        self.correctAtt_Check.toggled.connect(self.correctAttClicked)
         
-        QtCore.QObject.connect(self.channel_Spin, QtCore.SIGNAL(_fromUtf8("valueChanged(int)")), self.channelNumChanged)
-        QtCore.QObject.connect(self.DIC_Spin, QtCore.SIGNAL(_fromUtf8("valueChanged(int)")), self.DIC_changed)
-        QtCore.QObject.connect(self.removeBG_Check, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.removeBGClicked)
-        QtCore.QObject.connect(self.customize_Check, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.customBGClicked)
-        for fSize in self.featureSpins:
-            QtCore.QObject.connect(fSize, QtCore.SIGNAL(_fromUtf8("valueChanged(int)")), lambda x:self.checkOdd(x,fSize))
+        self.channel_Spin.valueChanged.connect(self.channelNumChanged)
+        self.DIC_Spin.valueChanged.connect(self.DIC_changed)
+        self.removeBG_Check.toggled.connect(self.removeBGClicked)
+        self.customize_Check.toggled.connect(self.customBGClicked)
+        for i in range(len(self.featureSpins)):
+            self.featureSpins[i].valueChanged.connect(self.checkOdd)
         
     def openFile(self):
         fileFilter = "TIF (*.tif)"
@@ -321,11 +324,13 @@ class Ui_MainWindow(object):
         self.featureSpins[ch].setVisible(bool)
         self.featureLabels[ch].setVisible(bool)
             
-    def checkOdd(self, val, fSize):
+    def checkOdd(self, val):
         if val%2==0:
-            fSize.setValue(val+1)
+            self.centralwidget.sender().setValue(val+1)
         
     def run(self):
+        self.statusBar.showMessage('Running...')
+        QtGui.QApplication.processEvents() 
         if self.customize_Check.isChecked():
             featureList = []
             for f in self.featureSpins:
@@ -334,8 +339,11 @@ class Ui_MainWindow(object):
             featureList = [self.featureSize1_Spin.value() for i in range(self.channel_Spin.value())]
         featureList[self.DIC_Spin.value()-1]=None
         imgs = self.openImage()
-        allEmbs = cropAPI.cropEmbs(imgs, self.DIC_Spin.value()-1, self.correctDrift_Check.isChecked(),\
+        try:
+            allEmbs = cropAPI.cropEmbs(imgs, self.DIC_Spin.value()-1, self.correctDrift_Check.isChecked(),\
                          self.correctAtt_Check.isChecked(),self.correctAtt_Spin.value(), self.removeBG_Check.isChecked(), featureList, self.resolution_Spin.value())
+        except Exception as inst:
+            self.statusBar.showMessage('Error:'+str(inst))
         self.save(allEmbs)
         
     def openImage(self):
@@ -355,8 +363,8 @@ class Ui_MainWindow(object):
                 ims = np.reshape(ims, (nT, nCh, nZ, ims[0].shape[0], ims[0].shape[1])).astype(np.float)
                 ims = np.swapaxes(ims, 1, 2)
         else:
-            print('Error: number of images (or sizes) does not correspond to z={0}, t={1}, ch={2}'.format(nZ, nT, nCh))
-            raise
+            self.statusBar.showMessage('Error: number of images (or sizes) does not correspond to z={0}, t={1}, ch={2}'.format(nZ, nT, nCh))
+            raise Exception('Error: number of images (or sizes) does not correspond to z={0}, t={1}, ch={2}'.format(nZ, nT, nCh))
         return ims
     
     def save(self, allEmbs):

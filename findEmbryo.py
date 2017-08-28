@@ -15,8 +15,9 @@ from numpy.random import randint, seed
 import skimage
 from skimage.morphology import remove_small_holes
 global debug
+import matplotlib.pyplot as plt
 
-debug=True
+debug=False
 minEmbArea=10000
 embDimA, embDimB = 150.,90.
 RES_SCALE = 1.
@@ -152,16 +153,15 @@ def getEllipse(contour, start, end):
 
 def showIm(img, title='image'):
     #show image
-    cv2.imshow(title, img)
-    code = cv2.waitKey()
-    cv2.destroyAllWindows()
-    return code
-#     fig = myFigure()
-#     fig.imshow(img, colorbar=False)
-#     fig.noAxis()
-#     fig.noClip()
-#     fig.title(title)
-#     fig.show()
+#     cv2.imshow(title, img)
+#     code = cv2.waitKey()
+#     cv2.destroyAllWindows()
+#     return code
+    plt.figure()
+    plt.imshow(img, cmap='Greys_r')
+    plt.axis('off')
+    plt.title(title)
+    plt.show()
     
 def saveIm(img):
     i=0
@@ -308,7 +308,7 @@ def getStart(cont, shape, side = 0):
     
 def findEmbryo(im,side=0):
     imTmp = im.copy()
-    contours = cv2.findContours(imTmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]
+    contours = cv2.findContours(imTmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[1]
     if side==0:
         quality, starts = [], []
         for side in range(1,20): #[top, right, bottom, left, random....]

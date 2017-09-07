@@ -16,8 +16,8 @@ corrDrift = True
 removeBG = True
 attCorrect = True
 apRotate = True
-nWells = 1#number of wells (14)
-pointVisits = 1# number of point visits (4)
+nWells = 14#number of wells (14)
+pointVisits = 4# number of point visits (4)
 
 import glob, csv, cv2, os, shutil
 import numpy as np
@@ -26,7 +26,7 @@ from myFunc import clearFolder
 from cropAPI import cropEmbs
 import tkMessageBox
 
-debug = True # use to debug the program
+debug = False # use to debug the program
 
 def getConditions(date, fileName):
     ''' loads RNAi strains for a specified date from a csv file '''

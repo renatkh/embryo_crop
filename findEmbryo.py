@@ -6,14 +6,14 @@ Created on Apr 1, 2014
 fits embryos on a DIC image with an ellipse 
 '''
 
-import cv2, glob,os
+import cv2, os
 import fitEllipse2
-from scipy.ndimage import label, morphology
+from scipy.ndimage import label
 import numpy as np
 import myFunc
 from numpy.random import randint, seed
-import skimage
 from skimage.morphology import remove_small_holes
+from myFunc import a16a8
 global debug
 import matplotlib.pyplot as plt
 
@@ -24,6 +24,7 @@ RES_SCALE = 1.
 SMALL_HOLE_SIZE=2000
 CANNY_TH1 = 30
 CANNY_TH2 = 100
+MAX_ARC_LENGTH = 700
 seed(2)
 
 def create_ellipse(r, xc, alpha, n=100, angle_range=(0,2*np.pi)):
@@ -152,16 +153,12 @@ def getEllipse(contour, start, end):
     return ((a,d),cPos, ang)
 
 def showIm(img, title='image'):
-    #show image
-#     cv2.imshow(title, img)
-#     code = cv2.waitKey()
-#     cv2.destroyAllWindows()
-#     return code
-    plt.figure()
-    plt.imshow(img, cmap='Greys_r')
-    plt.axis('off')
-    plt.title(title)
-    plt.show()
+#     show image
+    img = a16a8(img)
+    cv2.imshow(title, img)
+    code = cv2.waitKey()
+    cv2.destroyAllWindows()
+    return code
     
 def saveIm(img):
     i=0
@@ -241,9 +238,8 @@ def growArcEnd(contour, start, end=None, defect=False):
     if end is None: end = start+100
     if start > end: direction = -1 #the arc grow can be in any direction (in case end is smaller than start)
     stepSize = direction*stepSize
-    endPrev = end
     f=None
-    while abs(end-start)<1000*RES_SCALE:
+    while abs(end-start)<MAX_ARC_LENGTH*RES_SCALE:
         subCont = getContourPart(contour, start, end)
         s,e,f,d = findDefect(subCont, direction)
         if (s is not None and d>distInside and np.linalg.norm(subCont[e]-subCont[s])>distSE) or abs(end-start)>=len(contour):
@@ -251,7 +247,6 @@ def growArcEnd(contour, start, end=None, defect=False):
                 print('growArcEnd', d, np.linalg.norm(subCont[e]-subCont[s]))
             break
         else:
-            endPrev = end
             end+= stepSize 
 
     if f is not None: end = start+direction*f[0]
@@ -319,7 +314,7 @@ def findEmbryo(im,side=0):
             a,b = eParams[0]
 #             if 1.4*embDimA*RES_SCALE>a>embDimA*RES_SCALE*0.7 and 1.4*embDimB*RES_SCALE>b>0.7*embDimB*RES_SCALE:
             if a>embDimA*RES_SCALE*0.7 and b>0.7*embDimB*RES_SCALE:
-                quality.append(abs(embDimA-a)/embDimA+abs(embDimB-b)/embDimB)
+                quality.append(abs(embDimA*RES_SCALE-a)/embDimA/RES_SCALE+abs(embDimB*RES_SCALE-b)/embDimB/RES_SCALE)
             else: quality.append(100)
             if debug: print('findEmbryo', side, a, b, quality[-1],starts[-1])
         side = np.argmin(quality)+1
@@ -409,11 +404,11 @@ def getMask(image, DIC = False):
 
 def getMaskStak(images):
     kernel = np.ones((int(11*RES_SCALE),int(11*RES_SCALE)),np.uint8)
-    if debug: showIm(images[0])
-    images = np.array(myFunc.blurImList(images, int(1*RES_SCALE)))
-    if debug: showIm(images[0], 'after blur')
-    allEdges = np.zeros_like(images[0])
     z = images.shape[0]
+    if debug: showIm(images[z/2])
+    images = np.array(myFunc.blurImList(images, int(1*RES_SCALE)))
+    if debug: showIm(images[z/2], 'after blur')
+    allEdges = np.zeros_like(images[0])
     if z>3: useIms = images[z/2-1:z/2+1]
     else: useIms = images 
     for image in useIms:
@@ -525,10 +520,12 @@ def cropRotate(tmp):
     mapy, mapx = np.mgrid[0:im.shape[0],0:im.shape[1]].astype(np.float32)
     mapx = mapx-x
     mapy = mapy-y
-    im = cv2.remap(im32, mapx, mapy, interpolation=cv2.INTER_LINEAR).astype(im.dtype)
+#     showIm(im32, 'cropRotate 32')
+    im = cv2.remap(im32, mapx, mapy, interpolation=cv2.INTER_LINEAR)
+#     showIm(im, 'cropRotate shifted')
     center=np.array(im.shape)[::-1]/2
     matrix = cv2.getRotationMatrix2D(tuple(center), angle*180/np.pi, 1.0)
-    rotatedIm = cv2.warpAffine(im, matrix, (im.shape[1],im.shape[0]))
+    rotatedIm = cv2.warpAffine(im, matrix, (im.shape[1],im.shape[0])).astype(im.dtype)
     width, height = (int(2*a),int(2* b))
     top, bot = max(0,center[1]-height/2), min(rotatedIm.shape[0],center[1]+height/2)
     left, right = max(0,center[0]-width/2), min(rotatedIm.shape[1],center[0]+width/2)

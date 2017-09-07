@@ -13,18 +13,20 @@ from findEmbryo import showIm, getMaskStak, findEmbsonIm, cropRotate, getAP, get
 from AttenuationCorrection import correctAttAll, corrAttMultiCh
 import findEmbryo
 
-
 def cropEmbs(ims, dicCh, corrDrift, corrAtt, attVal, removeBkgd, featureList, resolution, EmbdScreen=False):
     findEmbryo.RES_SCALE=0.21/resolution
     z, ch = ims.shape[1:3]
     if corrDrift: ims = correctDrift4AllC(ims, dicCh)
-    allEmbsIms, rs = cropAllC(ims,0,dicCh,corrDrift, corrAtt, attVal, removeBkgd, featureList, EmbdScreen)
+    if EmbdScreen: tCrop=3
+    else: tCrop=0
+    allEmbsIms, rs = cropAllC(ims,tCrop,dicCh,corrDrift, corrAtt, attVal, removeBkgd, featureList, EmbdScreen)
     if corrAtt:
         result = []
         for embImgs in allEmbsIms:
             result.append(corrAttMultiCh(embImgs, z, ch, dicCh, 0, attVal))
-        return result
-    else:  return allEmbsIms
+    else:  result = allEmbsIms
+    if EmbdScreen: return result, rs
+    else: return result
     
 def cropAllC(imgs, tCrop, dicCh, corrDrift, corrAtt, attVal, removeBkgd, featureList, EmbdScreen):
     '''
@@ -101,7 +103,7 @@ def correctDrift4AllC(ims, dicCh):
 def checkAPRotation(im1,im2,im3, strain, corrAtt, attVal, params,z):
     apR = []
     for k in [6,8,10]:
-        if corrAtt: imtmp = cropRotate([myFunc.maxIntensProject(correctAttAll(im2[k*z:(k+1)*z],z,attVal)),params, False])
+        if corrAtt: imtmp = cropRotate([myFunc.maxIntensProject(correctAttAll(im2[k*z:(k+1)*z],z,0,attVal)),params, False])
         else: imtmp = cropRotate([myFunc.maxIntensProject(im2[k*z:(k+1)*z]),params, False])
         apR.append(getAP(imtmp))
     if np.mean(apR)<0.8:flip = True
@@ -110,8 +112,8 @@ def checkAPRotation(im1,im2,im3, strain, corrAtt, attVal, params,z):
         apR = []
         for k in [8,10,12]:
             if corrAtt:
-                imtmp1 = cropRotate([myFunc.maxIntensProject(correctAttAll(im1[k*z:(k+1)*z],z,attVal)),params, False])
-                imtmp2 = cropRotate([myFunc.maxIntensProject(correctAttAll(im2[k*z:(k+1)*z],z,attVal)),params, False])
+                imtmp1 = cropRotate([myFunc.maxIntensProject(correctAttAll(im1[k*z:(k+1)*z],z,0,attVal)),params, False])
+                imtmp2 = cropRotate([myFunc.maxIntensProject(correctAttAll(im2[k*z:(k+1)*z],z,0,attVal)),params, False])
             else:
                 imtmp1 = cropRotate([myFunc.maxIntensProject(im1[k*z:(k+1)*z]),params, False])
                 imtmp2 = cropRotate([myFunc.maxIntensProject(im2[k*z:(k+1)*z]),params, False])

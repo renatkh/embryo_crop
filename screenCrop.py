@@ -9,7 +9,7 @@ date = '20170118T125754'
 loadFolder = 'Z:/'
 folderIn = loadFolder + 'CV1000/' + date #Input folder
 trackingFile = 'Z:/Experiment_tracking_sheets/EMBD_fileNames_Tracking_Sheet.csv'
-aspectRatioFile = 'Z:/tmp/cropped/aspects.csv'
+aspectRatioFile = 'Z:/cropped/aspects.csv'
 z = 18 #number of z planes
 nT = 31 #number of time points
 corrDrift = True
@@ -163,8 +163,8 @@ def saveEmb(imgs, point, i, well, check, r):
     im3 = imgs[:,:,2]
     strain = strains[well]
     ri = RNAi[well]
-    if ri!='EMBD0000': folderOut = loadFolder + 'tmp/cropped/{0}/{1}/'.format(ri,strain) #outputFolder
-    else: folderOut = loadFolder + 'tmp/cropped/EMBD0000/{0}/{1}/'.format(strain,date) #outputFolder
+    if ri!='EMBD0000': folderOut = loadFolder + 'cropped/{0}/{1}/'.format(ri,strain) #outputFolder
+    else: folderOut = loadFolder + 'cropped/EMBD0000/{0}/{1}/'.format(strain,date) #outputFolder
     if check == 2 :folderOut = folderOut+'x'
     else: folderOut = folderOut
     j = 1

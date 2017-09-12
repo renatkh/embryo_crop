@@ -47,7 +47,11 @@ def cropAllC(imgs, tCrop, dicCh, corrDrift, corrAtt, attVal, removeBkgd, feature
             else:
                 for i in range(imgs.shape[0]):
                     for j in range(imgs.shape[1]):
-                        imtmp[i,j,ch]=myFunc.removeBG(imgs[i,j,ch], featureList[ch])
+                        if EmbdScreen:
+                            im = np.float32(imgs[i,j,ch]) - 3000
+                            im[np.where(im<0)]=0
+                        else: im = imgs[i,j,ch]
+                        imtmp[i,j,ch]=myFunc.removeBG(im, featureList[ch])
         imgs = imtmp
     im3 = np.reshape(imgs[:,:,dicCh],(-1,imgs.shape[-2],imgs.shape[-1]))
     ims8b = np.uint8(255.*(im3[tCrop*z:(tCrop+1)*z] - np.min(im3[tCrop*z:(tCrop+1)*z]))/np.max(im3[tCrop*z:(tCrop+1)*z]))

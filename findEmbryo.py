@@ -153,7 +153,12 @@ def getEllipse(contour, start, end):
     return ((a,d),cPos, ang)
 
 def showIm(img, title='image'):
-#     show image
+    """
+    shows image and waits for a key to be pressed
+    :param img: numpy array image
+    :param title: string
+    :return: pressed key code
+    """
     img = a16a8(img)
     cv2.imshow(title, img)
     code = cv2.waitKey()

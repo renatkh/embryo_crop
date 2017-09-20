@@ -237,11 +237,11 @@ class Ui_MainWindow(object):
         self.correctAttClicked(False)
         self.run_Button.setEnabled(False)
         
-#         self.z_Spin.setValue(15)
-#         self.time_Spin.setValue(3)
-#         self.channel_Spin.setValue(3)
-#         self.DIC_Spin.setValue(3)
-#         self.fileName_Line.setText('/home/renat/Documents/work/development/test/Well005.tif')
+        self.z_Spin.setValue(18)
+        self.time_Spin.setValue(4)
+        self.channel_Spin.setValue(3)
+        self.DIC_Spin.setValue(3)
+        self.fileName_Line.setText('/home/renat/Documents/work/development/example/W9F004T0001Z01C1.tif')
         
 # #         self.z_Spin.setValue(1)
 # #         self.time_Spin.setValue(17)
@@ -254,7 +254,7 @@ class Ui_MainWindow(object):
 # #         self.channel_Spin.setValue(3)
 # #         self.DIC_Spin.setValue(3)
 # #         self.fileName_Line.setText('/home/renat/Documents/work/development/test/OD3465-0002.tif_Files/OD3465-0002_z0t0c0.tif')
-#         self.run_Button.setEnabled(True)
+        self.run_Button.setEnabled(True)
 # 
 # #         self.z_Spin.setValue(5)
 # #         self.time_Spin.setValue(7)
@@ -285,13 +285,16 @@ class Ui_MainWindow(object):
     def correctAttClicked(self, state):
         self.correctAtt_Spin.setEnabled(state)
         self.correctAtt_Spin.setVisible(state)
+        if state:
+            self.removeBG_Check.setChecked(True)
                 
     def removeBGClicked(self, state):
         if state:
             self.customize_Check.setVisible(True)
             self.customize_Check.setEnabled(True)
             if self.channel_Spin.value()>1: self.showFeatureSize(0, True)
-        else: self.noBckgdChecked()
+        else:
+            self.noBckgdChecked()
     
     def customBGClicked(self, state):
         nCh = self.channel_Spin.value()
@@ -321,6 +324,7 @@ class Ui_MainWindow(object):
             self.showFeatureSize(i, False)
     
     def noBckgdChecked(self):
+        self.correctAtt_Check.setChecked(False)
         self.hideAllFeatures()
         self.customize_Check.setChecked(False)
         self.customize_Check.setEnabled(False)
@@ -345,7 +349,9 @@ class Ui_MainWindow(object):
         else:
             featureList = [self.featureSize1_Spin.value() for i in range(self.channel_Spin.value())]
         featureList[self.DIC_Spin.value()-1]=None
+        self.statusBar.showMessage('Loading images...')
         imgs = self.openImage()
+        self.statusBar.showMessage('Cropping...')
         try:
             allEmbs = cropAPI.cropEmbs(imgs, self.DIC_Spin.value()-1, self.correctDrift_Check.isChecked(),\
                          self.correctAtt_Check.isChecked(),self.correctAtt_Spin.value(), self.removeBG_Check.isChecked(), featureList, self.resolution_Spin.value())

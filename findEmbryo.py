@@ -14,6 +14,7 @@ import myFunc
 from numpy.random import randint, seed
 from skimage.morphology import remove_small_holes
 from myFunc import a16a8
+from numpy import ndarray
 global debug
 import matplotlib.pyplot as plt
 
@@ -320,6 +321,7 @@ def findEmbryo(im,side=0):
 #             if 1.4*embDimA*RES_SCALE>a>embDimA*RES_SCALE*0.7 and 1.4*embDimB*RES_SCALE>b>0.7*embDimB*RES_SCALE:
             if a>embDimA*RES_SCALE*0.7 and b>0.7*embDimB*RES_SCALE:
                 quality.append(abs(embDimA*RES_SCALE-a)/embDimA/RES_SCALE+abs(embDimB*RES_SCALE-b)/embDimB/RES_SCALE)
+            elif a*b == 0: quality.append(1000)
             else: quality.append(100)
             if debug: print('findEmbryo', side, a, b, quality[-1],starts[-1])
         side = np.argmin(quality)+1
@@ -332,6 +334,7 @@ def findEmbryo(im,side=0):
     eParams = getEllipse(contours[0], start,end)
     if debug: showEllipse(contours[0], start,end, im)
     if np.min(quality)<100: return True, eParams
+    elif np.min(quality)==1000: return False, contours[0]
     else: return False, eParams
 
 def removeFromMask(im,eParams):
@@ -340,10 +343,13 @@ def removeFromMask(im,eParams):
     imTmp = im.copy() #copy image
     imCut = np.zeros_like(im) #create mask to remove from image
     for params in eParams:
-        (a,d),cPos, ang = params #get ellipse parameters
-        params = (a+1,d+1),cPos, ang #add extra pix To make sure that all of the embryo is cut out.
-        ellipse = create_ellipse(*params) #creates ellipse points
-        ellipse = np.array([[[int(point[0]),int(point[1])]] for point in ellipse]) #converts points into numpy array
+        if isinstance(params, np.ndarray):
+            ellipse = params
+        else:
+            (a,d),cPos, ang = params #get ellipse parameters
+            params = (a+1,d+1),cPos, ang #add extra pix To make sure that all of the embryo is cut out.
+            ellipse = create_ellipse(*params) #creates ellipse points
+            ellipse = np.array([[[int(point[0]),int(point[1])]] for point in ellipse]) #converts points into numpy array
         bbox = np.array(cv2.boundingRect(ellipse)) #determine ellipse bounding rectangle to reduce area for checking
         ''' fix box boundaries to be within image '''
         if bbox[0]<0:
@@ -547,8 +553,9 @@ def findEmbsonIm(mask):
     while np.max(maskOut)>0:
         success, emb = findEmbryo(maskOut)
 #         print('{0} search for embs, success={1}'.format(i,success), np.sum(maskOut))
-        if success: eParams.append(emb)
-        maskOut , maskIn = removeFromMask(maskOut, [emb])
+        if success:
+            eParams.append(emb)
+        maskOut, maskIn = removeFromMask(maskOut, [emb])
         maskOut = getMask(maskOut)
         if np.sum(maskIn)==0: break
         i+=1

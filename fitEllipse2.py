@@ -118,7 +118,7 @@ def fitellipse( x, opt = 'nonlinear', **kwargs ):
     if x.shape[1] == 2:
         x = x.T
     if x.shape[1] < 6:
-        raise RuntimeError, 'fitellipse:InsufficientPoints At least 6 points required to compute fit'
+        raise RuntimeError('fitellipse:InsufficientPoints At least 6 points required to compute fit')
     
     ## Constraints are Euclidean-invariant, so improve conditioning by removing
     ## centroid
@@ -147,7 +147,7 @@ def fitellipse( x, opt = 'nonlinear', **kwargs ):
         
         ## Return linear estimate if GN doesn't converge
         if not fConverged:
-            print 'fitellipse:FailureToConverge', 'Gauss-Newton did not converge, returning linear estimate'
+            print('fitellipse:FailureToConverge', 'Gauss-Newton did not converge, returning linear estimate')
             z = z0
             a = a0
             b = b0
@@ -271,7 +271,7 @@ def fitnonlinear(x, z0, a0, b0, alpha0, **params):
         ##TODO: This can be fixed by switching to a Levenberg-Marquardt
         ##solver
         if abs(a - b) / (a + b) < circTol:
-            print 'fitellipse:CircleFound', 'Ellipse is near-circular - nonlinear fit may not succeed'
+            print('fitellipse:CircleFound', 'Ellipse is near-circular - nonlinear fit may not succeed')
         
         ## Convenience trig variables
         c = cos(phi)
@@ -334,7 +334,7 @@ def conic2parametric(A, bv, c):
     
     ## If the determinant < 0, it's not an ellipse
     if prod(D) <= 0:
-        raise RuntimeError, 'fitellipse:NotEllipse Linear fit did not produce an ellipse'
+        raise RuntimeError('fitellipse:NotEllipse Linear fit did not produce an ellipse')
     
     ## We have b_h' = 2 * t' * A + b'
     t = -0.5 * linalg.solve(A, bv)

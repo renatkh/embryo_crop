@@ -1,0 +1,25 @@
+name: embryocrop
+channels:
+  - anaconda
+  - defaults
+dependencies:
+  - tk=8.6.8=ha441bb4_0
+  - libopencv=3.4.2=h7c891bd_1
+  - libpng=1.6.34=he12f830_0
+  - libtiff=4.0.9=hcb84e12_2
+  - matplotlib=3.0.0=py36h54f8f79_0
+  - numpy=1.15.2=py36h6a91979_0
+  - opencv=3.4.2=py36h6fd60c2_1
+  - pillow=5.2.0=py36hb68e598_0
+  - pip=10.0.1=py36_0
+  - py-opencv=3.4.2=py36h7c891bd_1
+  - pyqt=5.9.2=py36h655552a_2
+  - python=3.6.6=hc167b69_0
+  - qt=5.9.6=h45cd832_2
+  - scikit-image=0.14.0=py36h0a44026_1
+  - scikit-learn=0.20.0=py36h4f467ca_1
+  - scipy=1.1.0=py36h28f7352_1
+  - pip:
+    - pyinstaller==3.4
+    - tifffile==0.15.1
+prefix: /

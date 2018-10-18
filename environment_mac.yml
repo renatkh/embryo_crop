@@ -13,13 +13,12 @@ dependencies:
   - pillow=5.2.0=py36hb68e598_0
   - pip=10.0.1=py36_0
   - py-opencv=3.4.2=py36h7c891bd_1
-  - pyqt=5.9.2=py36h655552a_2
   - python=3.6.6=hc167b69_0
-  - qt=5.9.6=h45cd832_2
   - scikit-image=0.14.0=py36h0a44026_1
   - scikit-learn=0.20.0=py36h4f467ca_1
   - scipy=1.1.0=py36h28f7352_1
   - pip:
     - pyinstaller==3.4
     - tifffile==0.15.1
+    - pyqt5
 prefix: /

@@ -213,7 +213,7 @@ def saveEmb(imgs, point, i, well, check, r):
 
     ''' populate aspect ratio file '''
     print('saveEmb aspect j=', j)
-    addAspect(r, date, ri, j)
+#     addAspect(r, date, ri, j)
 
 
 def saveImgs(imgs, folder, fileName, c):
@@ -266,7 +266,7 @@ def loadAspects(fileName):
 
 
 def saveAspects(fileName, data):
-    with open(fileName, 'wb') as f:
+    with open(fileName, 'w') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerows(data)
 

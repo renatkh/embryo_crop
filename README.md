@@ -46,6 +46,7 @@ Both programs (embryoCropUI.py and screenCrop.py)use specific versions of Python
       * At the prompt type in 
           > where conda
       * Find the location where conda.exe is located (ignore the .bat location) so you can add this location to environmental variables (this can be done within Anaconda Prompt).
+      
       ![whereconda](https://user-images.githubusercontent.com/38474936/47879250-5fd36300-dddd-11e8-8107-ceadd63a0ec2.jpg)
       * In this case it is C:\Users\rebec\Anaconda3\Scripts, but **obviously this will be specific to your system, so please edit the path appropriately!** For this example, we need to add both paths:
           *  C:\Users\rebec\Anaconda3

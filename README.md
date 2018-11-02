@@ -191,9 +191,3 @@ Both programs (embryoCropUI.py and screenCrop.py)use specific versions of Python
       * Once you have gone through all your images and determined whether you wish to save, x, or delete them, the program will then begin to save your images. The images will be saved to a subfolder named “Cropped” in the Load Folder that was defined in Line 9 of the program.
 
 
-
-### CONTACT ###
-* Renat Khaliullin renatkh@gmail.com
-* Rebecca Green regreen@ucsd.edu
-
-
